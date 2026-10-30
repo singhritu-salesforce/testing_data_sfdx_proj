@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Shp_Volume_Weight_Density</fullName>
+    <active>true</active>
+    <description>Declared volume must match L x W x H within 2%, and density (kg/m3) must be between 1 and 20000 using logarithmic bounds.</description>
+    <errorConditionFormula>AND(
+  NULLVALUE(Length_Cm__c, 0) &gt; 0,
+  NULLVALUE(Width_Cm__c, 0) &gt; 0,
+  NULLVALUE(Height_Cm__c, 0) &gt; 0,
+  NULLVALUE(Volume_M3__c, 0) &gt; 0,
+  OR(
+    ABS(Volume_M3__c - Length_Cm__c * Width_Cm__c * Height_Cm__c / 1000000) &gt; 0.02 * Volume_M3__c,
+    LOG(NULLVALUE(Weight_Kg__c, 0) / Volume_M3__c + 1) &gt; LOG(20000),
+    NULLVALUE(Weight_Kg__c, 0) / Volume_M3__c &lt; EXP(0)
+  )
+)</errorConditionFormula>
+    <errorMessage>Volume does not match dimensions or density is out of range.</errorMessage>
+</ValidationRule>

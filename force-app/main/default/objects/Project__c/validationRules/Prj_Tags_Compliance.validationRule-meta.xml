@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Tags_Compliance</fullName>
+    <active>true</active>
+    <description>Regulated projects must be approved, carry at most 3 tags, avoid the Pilot+Strategic combo and have a contact email.</description>
+    <errorConditionFormula>AND(
+  INCLUDES(Tags__c, 'Regulated'),
+  OR(
+    NOT(Is_Approved__c),
+    PICKLISTCOUNT(Tags__c) &gt; 3,
+    AND(INCLUDES(Tags__c, 'Pilot'), INCLUDES(Tags__c, 'Strategic')),
+    ISBLANK(Contact_Email__c)
+  )
+)</errorConditionFormula>
+    <errorMessage>Regulated projects require approval, at most 3 tags, no Pilot+Strategic combo, and a contact email.</errorMessage>
+</ValidationRule>

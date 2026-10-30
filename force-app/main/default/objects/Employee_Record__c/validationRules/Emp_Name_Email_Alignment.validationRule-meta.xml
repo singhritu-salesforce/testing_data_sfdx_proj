@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Emp_Name_Email_Alignment</fullName>
+    <active>true</active>
+    <description>Work email must start with first initial + last name (lowercase) and the employee name must be INITCAP-ed 'First Last'.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Work_Email__c)),
+  NOT(ISBLANK(First_Name__c)),
+  NOT(ISBLANK(Last_Name__c)),
+  OR(
+    NOT(BEGINS(Work_Email__c, LOWER(LEFT(First_Name__c, 1) &amp; SUBSTITUTE(Last_Name__c, ' ', '')))),
+    Name &lt;&gt; INITCAP(LOWER(First_Name__c &amp; ' ' &amp; Last_Name__c))
+  )
+)</errorConditionFormula>
+    <errorMessage>Work Email or Name does not follow first-initial+lastname convention.</errorMessage>
+</ValidationRule>

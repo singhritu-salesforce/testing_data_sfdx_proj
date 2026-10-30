@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Shp_Eta_Delivery_Windows</fullName>
+    <active>true</active>
+    <description>ETA must follow shipping, delivered shipments need a delivery stamp no earlier than shipping, and ETA cannot be more than 60 days away.</description>
+    <errorConditionFormula>OR(
+  AND(NOT(ISBLANK(Shipped_At__c)), NOT(ISBLANK(Estimated_Arrival__c)),
+    OR(Estimated_Arrival__c &lt;= Shipped_At__c, Estimated_Arrival__c &gt; Shipped_At__c + 60)),
+  AND(ISPICKVAL(Status__c, 'Delivered'), OR(ISBLANK(Delivered_At__c), Delivered_At__c &lt; NULLVALUE(Shipped_At__c, Delivered_At__c))),
+  AND(NOT(ISBLANK(Delivered_At__c)), DATEVALUE(Delivered_At__c) &gt; TODAY() + 1)
+)</errorConditionFormula>
+    <errorMessage>Shipment ETA or delivery timestamps are inconsistent.</errorMessage>
+</ValidationRule>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Inv_Project_Contact_Domain_Match</fullName>
+    <active>true</active>
+    <description>Billing email domain must equal the linked project's contact email domain (VLOOKUP by project Name); lookup ids must be 18 chars when case-safe.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Project_Name_Ref__c)),
+  NOT(ISBLANK(Billing_Email__c)),
+  FIND('@', Billing_Email__c) &gt; 0,
+  OR(
+    RIGHT(Billing_Email__c, LEN(Billing_Email__c) - FIND('@', Billing_Email__c)) &lt;&gt;
+      RIGHT(VLOOKUP($ObjectType.Project__c.Fields.Contact_Email__c, $ObjectType.Project__c.Fields.Name, Project_Name_Ref__c),
+            LEN(VLOOKUP($ObjectType.Project__c.Fields.Contact_Email__c, $ObjectType.Project__c.Fields.Name, Project_Name_Ref__c)) - FIND('@', VLOOKUP($ObjectType.Project__c.Fields.Contact_Email__c, $ObjectType.Project__c.Fields.Name, Project_Name_Ref__c))),
+    AND(NOT(ISBLANK(Account__c)), LEN(CASESAFEID(Account__c)) &lt;&gt; 18)
+  )
+)</errorConditionFormula>
+    <errorMessage>Billing Email domain must match the project's Contact Email domain.</errorMessage>
+</ValidationRule>

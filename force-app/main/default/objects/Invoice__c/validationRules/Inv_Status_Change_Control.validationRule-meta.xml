@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Inv_Status_Change_Control</fullName>
+    <active>true</active>
+    <description>Paid invoices are frozen, Void is terminal, and amount changes on Sent invoices need the status to be reset to Draft in the same edit.</description>
+    <errorConditionFormula>AND(
+  NOT(ISNEW()),
+  OR(
+    AND(ISPICKVAL(PRIORVALUE(Status__c), 'Paid'), OR(ISCHANGED(Amount__c), ISCHANGED(Discount__c), ISCHANGED(Tax_Rate__c))),
+    AND(ISPICKVAL(PRIORVALUE(Status__c), 'Void'), ISCHANGED(Status__c)),
+    AND(ISPICKVAL(PRIORVALUE(Status__c), 'Sent'), ISCHANGED(Amount__c), NOT(ISPICKVAL(Status__c, 'Draft')))
+  )
+)</errorConditionFormula>
+    <errorMessage>Invoice status/amount change not allowed.</errorMessage>
+</ValidationRule>

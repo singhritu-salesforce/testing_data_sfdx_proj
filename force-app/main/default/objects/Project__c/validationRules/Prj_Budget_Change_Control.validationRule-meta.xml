@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Budget_Change_Control</fullName>
+    <active>true</active>
+    <description>Budget edits cannot fall below spend, approved budgets may move at most 20%, and completed projects are frozen.</description>
+    <errorConditionFormula>AND(
+  NOT(ISNEW()),
+  ISCHANGED(Budget__c),
+  OR(
+    Budget__c &lt; NULLVALUE(Spent__c, 0),
+    AND(Is_Approved__c, ABS(Budget__c - BLANKVALUE(PRIORVALUE(Budget__c), 0)) &gt; 0.2 * MAX(1, BLANKVALUE(PRIORVALUE(Budget__c), 0))),
+    AND(ISPICKVAL(Status__c, 'Completed'), Budget__c &lt;&gt; PRIORVALUE(Budget__c))
+  )
+)</errorConditionFormula>
+    <errorMessage>Budget change violates change-control rules.</errorMessage>
+</ValidationRule>

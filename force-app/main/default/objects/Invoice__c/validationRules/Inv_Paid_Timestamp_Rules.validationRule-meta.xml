@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Inv_Paid_Timestamp_Rules</fullName>
+    <active>true</active>
+    <description>Paid timestamp is required only for Paid invoices, must be after the issue date, not in the future, and not in the last 5 minutes of a day.</description>
+    <errorConditionFormula>OR(
+  AND(ISPICKVAL(Status__c, 'Paid'), ISBLANK(Paid_At__c)),
+  AND(NOT(ISPICKVAL(Status__c, 'Paid')), NOT(ISBLANK(Paid_At__c))),
+  AND(NOT(ISBLANK(Paid_At__c)),
+    OR(
+      DATEVALUE(Paid_At__c) &lt; Issue_Date__c,
+      Paid_At__c &gt; NOW(),
+      AND(HOUR(TIMEVALUE(Paid_At__c)) = 23, MINUTE(TIMEVALUE(Paid_At__c)) &gt;= 55)
+    )
+  )
+)</errorConditionFormula>
+    <errorMessage>Paid At is missing, premature, in the future or in the final minutes of the day.</errorMessage>
+</ValidationRule>

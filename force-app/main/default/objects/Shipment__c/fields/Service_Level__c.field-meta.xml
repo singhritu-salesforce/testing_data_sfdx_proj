@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Service_Level__c</fullName>
+    <label>Service Level</label>
+    <required>false</required>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Ground</fullName>
+                <default>false</default>
+                <label>Ground</label>
+            </value>
+            <value>
+                <fullName>Air</fullName>
+                <default>false</default>
+                <label>Air</label>
+            </value>
+            <value>
+                <fullName>Express</fullName>
+                <default>false</default>
+                <label>Express</label>
+            </value>
+            <value>
+                <fullName>Freight</fullName>
+                <default>false</default>
+                <label>Freight</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

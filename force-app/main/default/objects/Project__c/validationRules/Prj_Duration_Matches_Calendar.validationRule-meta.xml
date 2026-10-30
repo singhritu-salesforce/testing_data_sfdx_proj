@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Duration_Matches_Calendar</fullName>
+    <active>true</active>
+    <description>Duration (seconds) cannot be negative or exceed the calendar span; day-or-longer durations must render with a day unit.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Duration_Secs__c)),
+  NOT(ISBLANK(Start_Date__c)),
+  NOT(ISBLANK(End_Date__c)),
+  OR(
+    Duration_Secs__c &lt; 0,
+    CEILING(Duration_Secs__c / 86400) &gt; (End_Date__c - Start_Date__c) + 1,
+    AND(Duration_Secs__c &gt;= 86400, NOT(CONTAINS(FORMATDURATION(Duration_Secs__c, TRUE), 'd')))
+  )
+)</errorConditionFormula>
+    <errorMessage>Duration Secs is inconsistent with the Start/End dates.</errorMessage>
+</ValidationRule>

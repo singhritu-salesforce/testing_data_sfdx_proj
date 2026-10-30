@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Shp_Declared_Value_Insurance</fullName>
+    <active>true</active>
+    <description>High declared values must be consistent with the weight (value per kg bounded by sqrt of weight) and require Signature Required handling.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Declared_Value__c)),
+  NULLVALUE(Weight_Kg__c, 0) &gt; 0,
+  OR(
+    Declared_Value__c / Weight_Kg__c &gt; 1000 * SQRT(Weight_Kg__c),
+    AND(Declared_Value__c &gt;= 5000, NOT(INCLUDES(Handling__c, 'Signature Required')))
+  )
+)</errorConditionFormula>
+    <errorMessage>Declared Value is too high for the weight or lacks signature handling.</errorMessage>
+</ValidationRule>

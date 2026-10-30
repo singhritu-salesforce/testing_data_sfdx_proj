@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Emp_Manager_Grade_Order</fullName>
+    <active>true</active>
+    <description>Performance score may not exceed the manager's score (VLOOKUP on the manager's Name), and scores must be within 0-5 on half-point steps.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Manager_Name_Ref__c)),
+  NOT(ISBLANK(Performance_Score__c)),
+  Performance_Score__c &gt; NULLVALUE(VLOOKUP($ObjectType.Employee_Record__c.Fields.Performance_Score__c, $ObjectType.Employee_Record__c.Fields.Name, Manager_Name_Ref__c), Performance_Score__c)
+)</errorConditionFormula>
+    <errorMessage>Performance Score may not exceed the manager's score.</errorMessage>
+</ValidationRule>

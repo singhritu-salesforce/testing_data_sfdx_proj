@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Mega_Launch_Readiness</fullName>
+    <active>true</active>
+    <description>Active projects must pass a launch-readiness gauntlet: code format, ISO-week parity, calendar span, burn rate, tags-per-priority, regulated contacts and a risk/completion balance.</description>
+    <errorConditionFormula>AND(
+  ISPICKVAL(Status__c, 'Active'),
+  NOT(ISBLANK(Start_Date__c)),
+  NOT(ISBLANK(End_Date__c)),
+  OR(
+    NOT(REGEX(BLANKVALUE(Code__c, '-'), 'PRJ-[0-9]{4}-[0-9]{4}-[A-Z]{2}')),
+    AND(MOD(ISOWEEK(Start_Date__c), 2) = 1, NOT(Is_Approved__c)),
+    End_Date__c - Start_Date__c &lt; CEILING(NULLVALUE(Duration_Secs__c, 0) / 86400),
+    ROUND(NULLVALUE(Spent__c, 0) / MAX(1, NULLVALUE(Budget__c, 0)), 2)
+      &gt; MIN(1, MAX(0.05, (TODAY() - Start_Date__c) / MAX(1, End_Date__c - Start_Date__c))) + 0.15,
+    CASE(TEXT(Priority__c), 'Critical', 2, 'High', 1, 0) &gt; PICKLISTCOUNT(Tags__c),
+    AND(INCLUDES(Tags__c, 'Regulated'), OR(ISBLANK(Contact_Email__c), ISBLANK(Phone__c))),
+    ABS(NULLVALUE(Risk_Score__c, 0) - 10 * (1 - NULLVALUE(Completion_Pct__c, 0))) &gt; 7
+  )
+)</errorConditionFormula>
+    <errorMessage>Active project failed the launch-readiness checks.</errorMessage>
+</ValidationRule>

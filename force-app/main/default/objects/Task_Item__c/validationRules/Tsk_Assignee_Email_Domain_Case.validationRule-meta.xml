@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Tsk_Assignee_Email_Domain_Case</fullName>
+    <active>true</active>
+    <description>Assignee email must be lowercase, contain exactly one '@' (CHR(64)), and its local part may not be longer than 40 characters.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Assignee_Email__c)),
+  OR(
+    Assignee_Email__c &lt;&gt; LOWER(Assignee_Email__c),
+    LEN(Assignee_Email__c) - LEN(SUBSTITUTE(Assignee_Email__c, CHR(64), '')) &lt;&gt; 1,
+    FIND(CHR(64), Assignee_Email__c) &gt; 41
+  )
+)</errorConditionFormula>
+    <errorMessage>Assignee Email must be lowercase with a single @ and a short local part.</errorMessage>
+</ValidationRule>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Code_Format_Checksum</fullName>
+    <active>true</active>
+    <description>Code must match PRJ-YYYY-NNNN-XX, the year must be sane, and the suffix must equal the uppercased first two letters of the name.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Code__c)),
+  OR(
+    NOT(REGEX(Code__c, 'PRJ-[0-9]{4}-[0-9]{4}-[A-Z]{2}')),
+    IF(
+      REGEX(Code__c, 'PRJ-[0-9]{4}-[0-9]{4}-[A-Z]{2}'),
+      OR(
+        VALUE(MID(Code__c, 5, 4)) &lt; 2000,
+        VALUE(MID(Code__c, 5, 4)) &gt; YEAR(TODAY()) + 1,
+        RIGHT(Code__c, 2) &lt;&gt; UPPER(LEFT(SUBSTITUTE(Name, ' ', ''), 2))
+      ),
+      FALSE
+    )
+  )
+)</errorConditionFormula>
+    <errorMessage>Code must look like PRJ-YYYY-NNNN-XX with XX = first two letters of the name.</errorMessage>
+</ValidationRule>

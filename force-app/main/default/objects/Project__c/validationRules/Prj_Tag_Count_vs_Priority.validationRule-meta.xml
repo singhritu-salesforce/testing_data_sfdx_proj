@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Tag_Count_vs_Priority</fullName>
+    <active>true</active>
+    <description>The number of tags must be within a priority-driven ceiling; High/Critical need at least one tag; External+Internal needs Regulated.</description>
+    <errorConditionFormula>OR(
+  AND(ISBLANK(Tags__c), OR(ISPICKVAL(Priority__c, 'High'), ISPICKVAL(Priority__c, 'Critical'))),
+  AND(NOT(ISBLANK(Tags__c)),
+    OR(
+      PICKLISTCOUNT(Tags__c) &gt; CASE(TEXT(Priority__c), 'Low', 1, 'Medium', 2, 'High', 3, 5),
+      AND(INCLUDES(Tags__c, 'External'), INCLUDES(Tags__c, 'Internal'), NOT(INCLUDES(Tags__c, 'Regulated')))
+    )
+  )
+)</errorConditionFormula>
+    <errorMessage>Tag count or tag combination does not fit the project priority.</errorMessage>
+</ValidationRule>

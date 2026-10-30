@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Shp_Delivered_Lock</fullName>
+    <active>true</active>
+    <description>Delivered shipments are locked except for return transitions; tracking number and carrier cannot change after shipping.</description>
+    <errorConditionFormula>AND(
+  NOT(ISNEW()),
+  OR(
+    AND(ISPICKVAL(PRIORVALUE(Status__c), 'Delivered'), ISCHANGED(Status__c), NOT(ISPICKVAL(Status__c, 'Returned'))),
+    AND(NOT(ISBLANK(PRIORVALUE(Shipped_At__c))), OR(ISCHANGED(Tracking_Number__c), ISCHANGED(Carrier__c)))
+  )
+)</errorConditionFormula>
+    <errorMessage>Shipment is locked after delivery/shipping.</errorMessage>
+</ValidationRule>

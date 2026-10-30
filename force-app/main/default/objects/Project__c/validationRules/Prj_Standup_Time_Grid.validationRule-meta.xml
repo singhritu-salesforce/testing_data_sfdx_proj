@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Standup_Time_Grid</fullName>
+    <active>true</active>
+    <description>Standup time must sit on a 5-minute grid between 06:00 and 20:00, with no seconds/millis and no 12:00-12:29 slot.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Standup_Time__c)),
+  OR(
+    Standup_Time__c &lt; TIMEVALUE('06:00:00.000'),
+    Standup_Time__c &gt;= TIMEVALUE('20:00:00.000'),
+    MOD(MINUTE(Standup_Time__c), 5) &lt;&gt; 0,
+    SECOND(Standup_Time__c) + MILLISECOND(Standup_Time__c) &gt; 0,
+    AND(HOUR(Standup_Time__c) = 12, MINUTE(Standup_Time__c) &lt; 30)
+  )
+)</errorConditionFormula>
+    <errorMessage>Standup Time must be on a 5-minute grid between 06:00 and 20:00 (not during 12:00-12:29).</errorMessage>
+</ValidationRule>

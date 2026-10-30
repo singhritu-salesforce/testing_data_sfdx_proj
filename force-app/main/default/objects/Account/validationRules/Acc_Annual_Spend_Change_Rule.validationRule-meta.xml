@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Acc_Annual_Spend_Change_Rule</fullName>
+    <active>true</active>
+    <description>Annual Spend may drop by at most 50% in one edit, tier downgrades need a Type of 'Customer - Direct' or blank, and territory changes lock Global accounts.</description>
+    <errorConditionFormula>AND(
+  NOT(ISNEW()),
+  OR(
+    AND(ISCHANGED(Annual_Spend__c), NULLVALUE(PRIORVALUE(Annual_Spend__c), 0) &gt; 0,
+      Annual_Spend__c &lt; 0.5 * PRIORVALUE(Annual_Spend__c)),
+    AND(ISCHANGED(Account_Tier__c), 
+      CASE(TEXT(Account_Tier__c), 'Bronze', 0, 'Silver', 1, 'Gold', 2, 'Platinum', 3, -1) &lt;
+      CASE(TEXT(PRIORVALUE(Account_Tier__c)), 'Bronze', 0, 'Silver', 1, 'Gold', 2, 'Platinum', 3, -1),
+      NOT(OR(ISBLANK(TEXT(Type)), ISPICKVAL(Type, 'Customer - Direct')))),
+    AND(ISCHANGED(Sales_Territories__c), INCLUDES(PRIORVALUE(Sales_Territories__c), 'Global'))
+  )
+)</errorConditionFormula>
+    <errorMessage>Spend, tier or territory change not allowed.</errorMessage>
+</ValidationRule>

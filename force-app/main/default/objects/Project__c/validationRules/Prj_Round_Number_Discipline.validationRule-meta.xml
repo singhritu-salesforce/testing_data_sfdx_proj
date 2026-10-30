@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Round_Number_Discipline</fullName>
+    <active>true</active>
+    <description>Non-draft budgets of 10k+ must be whole thousands, completion must move in 5% steps, and approved spend must be whole dollars.</description>
+    <errorConditionFormula>AND(
+  NOT(ISPICKVAL(Status__c, 'Draft')),
+  OR(
+    AND(Budget__c &gt;= 10000, MOD(MFLOOR(Budget__c), 1000) &lt;&gt; 0),
+    AND(NOT(ISBLANK(Completion_Pct__c)), MOD(ROUND(Completion_Pct__c * 100, 0), 5) &lt;&gt; 0),
+    AND(Is_Approved__c, NOT(ISBLANK(Spent__c)), TRUNC(Spent__c, 0) &lt;&gt; Spent__c, MCEILING(Spent__c) &gt; MFLOOR(Spent__c))
+  )
+)</errorConditionFormula>
+    <errorMessage>Budget, Completion or Spent breaks the rounding conventions.</errorMessage>
+</ValidationRule>

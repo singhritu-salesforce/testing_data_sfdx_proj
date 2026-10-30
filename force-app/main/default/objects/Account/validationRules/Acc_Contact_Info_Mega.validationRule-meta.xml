@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Acc_Contact_Info_Mega</fullName>
+    <active>true</active>
+    <description>Mega-check of phone digits, website prefix, billing country/state coherence, employee counts and rating vs tier.</description>
+    <errorConditionFormula>OR(
+  AND(NOT(ISBLANK(Phone)), LEN(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(Phone, '-', ''), ' ', ''), '+', '')) &lt; 7),
+  AND(NOT(ISBLANK(Website)), NOT(OR(BEGINS(LOWER(Website), 'http://'), BEGINS(LOWER(Website), 'https://'), BEGINS(LOWER(Website), 'www.')))),
+  AND(NOT(ISBLANK(BillingState)), ISBLANK(BillingCountry), LEN(BillingState) &gt; 2),
+  AND(NULLVALUE(NumberOfEmployees, 1) &lt; 1, MOD(MFLOOR(NULLVALUE(AnnualRevenue, 0)), 2) = 1),
+  AND(ISPICKVAL(Rating, 'Hot'), CASE(TEXT(Account_Tier__c), 'Gold', 0, 'Platinum', 0, 1) = 1)
+)</errorConditionFormula>
+    <errorMessage>Account contact/billing data failed the consistency audit.</errorMessage>
+</ValidationRule>

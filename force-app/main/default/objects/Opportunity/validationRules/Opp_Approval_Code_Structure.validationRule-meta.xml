@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Opp_Approval_Code_Structure</fullName>
+    <active>true</active>
+    <description>Approval code is required when discount is over 20% and must be AP-&lt;DDD&gt;-&lt;2 letter stage initials&gt; where DDD is the close day-of-year.</description>
+    <errorConditionFormula>OR(
+  AND(NULLVALUE(Discount_Pct__c, 0) &gt; 0.2, ISBLANK(Approval_Code__c)),
+  AND(NOT(ISBLANK(Approval_Code__c)),
+    OR(NOT(REGEX(Approval_Code__c, 'AP-[0-9]{3}-[A-Z]{2}')),
+       VALUE(MID(Approval_Code__c, 4, 3)) &lt;&gt; DAYOFYEAR(CloseDate),
+       RIGHT(Approval_Code__c, 2) &lt;&gt; UPPER(LEFT(TEXT(StageName), 2))))
+)</errorConditionFormula>
+    <errorMessage>Approval Code is missing or malformed for this discount level.</errorMessage>
+</ValidationRule>

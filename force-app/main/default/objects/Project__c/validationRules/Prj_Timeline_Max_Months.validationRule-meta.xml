@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Timeline_Max_Months</fullName>
+    <active>true</active>
+    <description>End date must not precede start and may not exceed start plus 12/24/36 months depending on priority (clamped by MIN/MAX).</description>
+    <errorConditionFormula>AND(
+  NOT(OR(ISBLANK(Start_Date__c), ISBLANK(End_Date__c))),
+  OR(
+    End_Date__c &lt; Start_Date__c,
+    End_Date__c &gt; ADDMONTHS(Start_Date__c, MIN(36, MAX(12, CASE(TEXT(Priority__c), 'Critical', 12, 'High', 24, 36))))
+  )
+)</errorConditionFormula>
+    <errorMessage>End Date is before Start Date or beyond the allowed horizon for this priority.</errorMessage>
+</ValidationRule>

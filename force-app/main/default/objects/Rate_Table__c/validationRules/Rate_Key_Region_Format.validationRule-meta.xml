@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Rate_Key_Region_Format</fullName>
+    <active>true</active>
+    <description>Rate keys must be 3 uppercase letters, the region must be a prefix of it when set, and rates are capped at 100% with 2 decimal places.</description>
+    <errorConditionFormula>OR(
+  AND(NOT(ISBLANK(Key__c)), OR(NOT(REGEX(Key__c, '[A-Z]{3}')), LEN(Key__c) &lt;&gt; 3)),
+  AND(NOT(ISBLANK(Region__c)), NOT(ISBLANK(Key__c)), NOT(BEGINS(UPPER(Region__c), LEFT(Key__c, 1)))),
+  AND(NOT(ISBLANK(Rate__c)), OR(Rate__c &gt; 1, ROUND(Rate__c * 10000, 0) &lt;&gt; Rate__c * 10000))
+)</errorConditionFormula>
+    <errorMessage>Rate Table key, region or rate is invalid.</errorMessage>
+</ValidationRule>

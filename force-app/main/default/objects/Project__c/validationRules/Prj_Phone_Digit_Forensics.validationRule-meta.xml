@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Phone_Digit_Forensics</fullName>
+    <active>true</active>
+    <description>After stripping punctuation the phone must be numeric, 10-15 digits long, and an international '+' number cannot start with 0.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Phone__c)),
+  OR(
+    NOT(ISNUMBER(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(Phone__c, '-', ''), ' ', ''), '(', ''), ')', ''), '+', ''))),
+    LEN(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(Phone__c, '-', ''), ' ', ''), '(', ''), ')', ''), '+', '')) &lt; 10,
+    LEN(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(Phone__c, '-', ''), ' ', ''), '(', ''), ')', ''), '+', '')) &gt; 15,
+    AND(BEGINS(Phone__c, '+'), LEFT(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(Phone__c, '-', ''), ' ', ''), '(', ''), ')', ''), '+', ''), 1) = '0')
+  )
+)</errorConditionFormula>
+    <errorMessage>Phone must contain 10-15 digits (punctuation allowed).</errorMessage>
+</ValidationRule>

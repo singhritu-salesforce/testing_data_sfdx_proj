@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Session_Guard</fullName>
+    <active>true</active>
+    <description>Approved Completed projects cannot be created by a session-less context (GETSESSIONID empty) or carry a line break in the name.</description>
+    <errorConditionFormula>AND(
+  ISNEW(),
+  Is_Approved__c,
+  ISPICKVAL(Status__c, 'Completed'),
+  OR(LEN(GETSESSIONID()) = 0, CONTAINS(Name, BR()))
+)</errorConditionFormula>
+    <errorMessage>Approved, completed projects cannot be created from a session-less context.</errorMessage>
+</ValidationRule>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Risk_Curve_vs_Budget</fullName>
+    <active>true</active>
+    <description>Unapproved projects whose sqrt(risk)*e^-completion*ln(risk+1) exceeds log10(budget) are too risky for their size.</description>
+    <errorConditionFormula>AND(
+  NOT(ISNULL(Risk_Score__c)),
+  Risk_Score__c &gt; 0,
+  NOT(ISBLANK(Budget__c)),
+  NOT(Is_Approved__c),
+  ROUND(SQRT(Risk_Score__c) * EXP(-NULLVALUE(Completion_Pct__c, 0)) * LN(Risk_Score__c + 1), 3) &gt; LOG(MAX(10, Budget__c))
+)</errorConditionFormula>
+    <errorMessage>Risk score is too high for the budget and completion level of this unapproved project.</errorMessage>
+</ValidationRule>

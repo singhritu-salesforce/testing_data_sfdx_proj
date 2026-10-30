@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Shp_Great_Circle_Haversine</fullName>
+    <active>true</active>
+    <description>A trig haversine cross-check (SIN/COS/ATAN2/SQRT/PI) of the stored distance must agree with DISTANCE within 5% for international shipments.</description>
+    <errorConditionFormula>AND(
+  Is_International__c,
+  NOT(ISBLANK(Origin__latitude__s)),
+  NOT(ISBLANK(Destination__latitude__s)),
+  ABS(
+    3958.8 * 2 * ATAN2(
+      SQRT(SIN((Destination__latitude__s - Origin__latitude__s) * PI() / 360) ^ 2
+        + COS(Origin__latitude__s * PI() / 180) * COS(Destination__latitude__s * PI() / 180)
+          * SIN((Destination__longitude__s - Origin__longitude__s) * PI() / 360) ^ 2),
+      SQRT(1 - (SIN((Destination__latitude__s - Origin__latitude__s) * PI() / 360) ^ 2
+        + COS(Origin__latitude__s * PI() / 180) * COS(Destination__latitude__s * PI() / 180)
+          * SIN((Destination__longitude__s - Origin__longitude__s) * PI() / 360) ^ 2))
+    ) - DISTANCE(Origin__c, Destination__c, 'mi')
+  ) &gt; 0.05 * MAX(1, DISTANCE(Origin__c, Destination__c, 'mi'))
+)</errorConditionFormula>
+    <errorMessage>Origin/destination coordinates are inconsistent (haversine vs DISTANCE).</errorMessage>
+</ValidationRule>

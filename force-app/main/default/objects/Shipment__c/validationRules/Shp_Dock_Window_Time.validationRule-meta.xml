@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Shp_Dock_Window_Time</fullName>
+    <active>true</active>
+    <description>Dock time must be in 07:00-18:59, not a lunch slot at 12:xx on the half hour, and the datetime-to-time check on ETA must not land on the dock-closed 00:00 sentinel.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Dock_Time__c)),
+  OR(
+    HOUR(Dock_Time__c) &lt; 7,
+    HOUR(Dock_Time__c) &gt; 18,
+    AND(HOUR(Dock_Time__c) = 12, MINUTE(Dock_Time__c) = 30),
+    AND(NOT(ISBLANK(Estimated_Arrival__c)), TIMEVALUE(Estimated_Arrival__c) = TIMEVALUE('00:00:00.000'), MILLISECOND(Dock_Time__c) &lt;&gt; 0)
+  )
+)</errorConditionFormula>
+    <errorMessage>Dock Time is outside the allowed window.</errorMessage>
+</ValidationRule>

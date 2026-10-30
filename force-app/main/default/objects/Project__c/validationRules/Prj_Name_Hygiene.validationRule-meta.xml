@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Name_Hygiene</fullName>
+    <active>true</active>
+    <description>Names must be trimmed, free of double spaces, not start with a digit (ASCII 48-57), and approved names must be in title case.</description>
+    <errorConditionFormula>OR(
+  Name &lt;&gt; TRIM(Name),
+  FIND('  ', Name) &gt; 0,
+  AND(ASCII(LEFT(Name, 1)) &gt;= 48, ASCII(LEFT(Name, 1)) &lt;= 57),
+  AND(Is_Approved__c, Name &lt;&gt; INITCAP(LOWER(Name))),
+  LEN(Name) &gt; 80
+)</errorConditionFormula>
+    <errorMessage>Project name fails hygiene checks (spacing, leading digit, casing, or length).</errorMessage>
+</ValidationRule>

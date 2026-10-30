@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Kickoff_ISO_Week_Alignment</fullName>
+    <active>true</active>
+    <description>Non-draft projects must kick off in the same ISO year as the start date and within 2 ISO weeks of it.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Kickoff_At__c)),
+  NOT(ISBLANK(Start_Date__c)),
+  NOT(ISPICKVAL(Status__c, 'Draft')),
+  OR(
+    ISOYEAR(DATEVALUE(Kickoff_At__c)) &lt;&gt; ISOYEAR(Start_Date__c),
+    ABS(ISOWEEK(DATEVALUE(Kickoff_At__c)) - ISOWEEK(Start_Date__c)) &gt; 2
+  )
+)</errorConditionFormula>
+    <errorMessage>Kickoff must fall in the same ISO year and within 2 ISO weeks of the Start Date.</errorMessage>
+</ValidationRule>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Clone_Reset_Guard</fullName>
+    <active>true</active>
+    <description>A cloned project must start clean: not approved, no spend, Draft, 0% complete and no stale kickoff or epoch.</description>
+    <errorConditionFormula>AND(
+  ISNEW(),
+  ISCLONE(),
+  OR(
+    Is_Approved__c,
+    NULLVALUE(Spent__c, 0) &gt; 0,
+    NOT(ISPICKVAL(Status__c, 'Draft')),
+    NULLVALUE(Completion_Pct__c, 0) &gt; 0,
+    AND(NOT(ISBLANK(Kickoff_At__c)), Kickoff_At__c &lt; NOW()),
+    AND(NOT(ISBLANK(Epoch_Seconds__c)), Epoch_Seconds__c &lt; UNIXTIMESTAMP(NOW()))
+  )
+)</errorConditionFormula>
+    <errorMessage>Cloned projects must be reset (Draft, unapproved, no spend, no stale dates).</errorMessage>
+</ValidationRule>

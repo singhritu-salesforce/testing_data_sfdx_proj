@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Shp_Tracking_Number_By_Carrier</fullName>
+    <active>true</active>
+    <description>Tracking numbers are validated by a carrier-specific CASE ladder of length and prefix rules, plus a no-spaces / uppercase check.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Tracking_Number__c)),
+  OR(
+    CASE(TEXT(Carrier__c),
+      'UPS', IF(AND(BEGINS(Tracking_Number__c, '1Z'), LEN(Tracking_Number__c) = 18), 0, 1),
+      'FedEx', IF(OR(LEN(Tracking_Number__c) = 12, LEN(Tracking_Number__c) = 15), 0, 1),
+      'DHL', IF(AND(LEN(Tracking_Number__c) = 10, ISNUMBER(Tracking_Number__c)), 0, 1),
+      0) = 1,
+    Tracking_Number__c &lt;&gt; UPPER(Tracking_Number__c),
+    CONTAINS(Tracking_Number__c, ' ')
+  )
+)</errorConditionFormula>
+    <errorMessage>Tracking Number does not match the carrier's format.</errorMessage>
+</ValidationRule>

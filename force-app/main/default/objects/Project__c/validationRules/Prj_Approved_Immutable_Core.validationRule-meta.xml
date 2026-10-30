@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Approved_Immutable_Core</fullName>
+    <active>true</active>
+    <description>Once approved, the code, account and parent are frozen and dates may only be tightened (end earlier, start later).</description>
+    <errorConditionFormula>IF(
+  ISNEW(),
+  FALSE,
+  AND(
+    PRIORVALUE(Is_Approved__c),
+    OR(
+      ISCHANGED(Code__c),
+      ISCHANGED(Account__c),
+      ISCHANGED(Parent_Project__c),
+      AND(ISCHANGED(End_Date__c), End_Date__c &gt; PRIORVALUE(End_Date__c)),
+      AND(ISCHANGED(Start_Date__c), Start_Date__c &lt; PRIORVALUE(Start_Date__c))
+    )
+  )
+)</errorConditionFormula>
+    <errorMessage>Approved projects have locked identity fields and may only tighten dates.</errorMessage>
+</ValidationRule>
