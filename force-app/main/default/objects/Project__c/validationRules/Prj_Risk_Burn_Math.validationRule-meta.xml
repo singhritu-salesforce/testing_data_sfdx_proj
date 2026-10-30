@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Risk_Burn_Math</fullName>
+    <active>true</active>
+    <description>Unapproved projects face a log/exp/sqrt risk curve against budget, a time-prorated burn-rate ceiling (TRUNC/FLOOR/MIN/MAX), and whole-thousand budget and 5% completion step rules; null risk is skipped via ISNULL.</description>
+    <errorConditionFormula>AND(
+  NOT(Is_Approved__c),
+  NOT(ISNULL(Risk_Score__c)),
+  Risk_Score__c &gt; 0,
+  NOT(ISBLANK(Budget__c)),
+  OR(
+    ROUND(SQRT(Risk_Score__c) * EXP(-NULLVALUE(Completion_Pct__c, 0)) * LN(Risk_Score__c + 1), 3) &gt; LOG(MAX(10, Budget__c)),
+    AND(
+      Budget__c &gt; 0,
+      NOT(ISBLANK(Start_Date__c)),
+      NOT(ISBLANK(End_Date__c)),
+      TRUNC(NULLVALUE(Spent__c, 0) / MAX(1, Budget__c) * 100, 0) &gt;
+        FLOOR(100 * MIN(1, MAX(0, (TODAY() - Start_Date__c) / MAX(1, End_Date__c - Start_Date__c))) + CASE(TEXT(Priority__c), 'Critical', 30, 'High', 20, 10))
+    ),
+    IF(
+      NOT(ISPICKVAL(Status__c, 'Draft')),
+      OR(
+        AND(Budget__c &gt;= 10000, MOD(MFLOOR(Budget__c), 1000) &lt;&gt; 0),
+        AND(NOT(ISBLANK(Completion_Pct__c)), MOD(ROUND(Completion_Pct__c * 100, 0), 5) &lt;&gt; 0),
+        MCEILING(NULLVALUE(Spent__c, 0)) - MFLOOR(NULLVALUE(Spent__c, 0)) &gt; 1
+      ),
+      FALSE
+    )
+  )
+)</errorConditionFormula>
+    <errorMessage>Risk, burn rate, budget rounding or completion step breaks the math rules.</errorMessage>
+</ValidationRule>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Change_Control</fullName>
+    <active>true</active>
+    <description>Inserts and clones must start clean; updates enforce a status ladder, a budget change policy and a frozen identity once approved, using ISNEW, ISCLONE, ISCHANGED and PRIORVALUE.</description>
+    <errorConditionFormula>IF(
+  ISNEW(),
+  IF(
+    ISCLONE(),
+    OR(
+      Is_Approved__c,
+      NULLVALUE(Spent__c, 0) &gt; 0,
+      NOT(ISPICKVAL(Status__c, 'Draft')),
+      AND(NOT(ISBLANK(Kickoff_At__c)), Kickoff_At__c &lt; NOW()),
+      AND(NOT(ISBLANK(Epoch_Seconds__c)), Epoch_Seconds__c &lt; UNIXTIMESTAMP(NOW()))
+    ),
+    AND(Is_Approved__c, ISPICKVAL(Status__c, 'Completed'), LEN(GETSESSIONID()) = 0)
+  ),
+  OR(
+    AND(
+      ISCHANGED(Status__c),
+      OR(
+        CASE(TEXT(PRIORVALUE(Status__c)), 'Draft', 0, 'Planning', 1, 'Active', 2, 'On Hold', 2, 'Completed', 3, 'Cancelled', 3, -1) - CASE(TEXT(Status__c), 'Draft', 0, 'Planning', 1, 'Active', 2, 'On Hold', 2, 'Completed', 3, 'Cancelled', 3, -1) &gt;= 2,
+        AND(ISPICKVAL(PRIORVALUE(Status__c), 'Cancelled'), NOT(ISPICKVAL(Status__c, 'Planning'))),
+        AND(ISPICKVAL(Status__c, 'Completed'), NOT(Is_Approved__c))
+      )
+    ),
+    AND(
+      ISCHANGED(Budget__c),
+      OR(
+        Budget__c &lt; NULLVALUE(Spent__c, 0),
+        AND(Is_Approved__c, ABS(Budget__c - BLANKVALUE(PRIORVALUE(Budget__c), 0)) &gt; 0.2 * MAX(1, BLANKVALUE(PRIORVALUE(Budget__c), 0))),
+        AND(ISPICKVAL(Status__c, 'Completed'), Budget__c &lt;&gt; PRIORVALUE(Budget__c))
+      )
+    ),
+    AND(
+      PRIORVALUE(Is_Approved__c),
+      OR(
+        ISCHANGED(Code__c),
+        ISCHANGED(Account__c),
+        ISCHANGED(Parent_Project__c),
+        AND(ISCHANGED(End_Date__c), End_Date__c &gt; PRIORVALUE(End_Date__c)),
+        AND(ISCHANGED(Start_Date__c), Start_Date__c &lt; PRIORVALUE(Start_Date__c))
+      )
+    )
+  )
+)</errorConditionFormula>
+    <errorMessage>This change violates the project change-control policy.</errorMessage>
+</ValidationRule>

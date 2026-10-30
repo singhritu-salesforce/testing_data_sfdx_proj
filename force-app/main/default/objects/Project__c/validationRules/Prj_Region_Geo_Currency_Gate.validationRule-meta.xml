@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Region_Geo_Currency_Gate</fullName>
+    <active>true</active>
+    <description>Regulated projects need a Region Key resolving through VLOOKUP into an active Rate Table row with a capped rate, a location within 3000 miles of a reference point, an 18-char CASESAFEID account, a positive currency rate and a line-break-free name.</description>
+    <errorConditionFormula>AND(
+  INCLUDES(Tags__c, 'Regulated'),
+  OR(
+    ISBLANK(Region_Key__c),
+    IF(
+      LEN(TRIM(Region_Key__c)) &lt;&gt; 3,
+      TRUE,
+      OR(
+        ISBLANK(VLOOKUP($ObjectType.Rate_Table__c.Fields.Region__c, $ObjectType.Rate_Table__c.Fields.Name, UPPER(Region_Key__c))),
+        NULLVALUE(VLOOKUP($ObjectType.Rate_Table__c.Fields.Rate__c, $ObjectType.Rate_Table__c.Fields.Name, UPPER(Region_Key__c)), 1) &gt; 0.25
+      )
+    ),
+    AND(
+      NOT(ISBLANK(Location__latitude__s)),
+      NOT(ISBLANK(Location__longitude__s)),
+      DISTANCE(Location__c, GEOLOCATION(37.7749, -122.4194), 'mi') &gt; 3000
+    ),
+    CURRENCYRATE('USD') &lt;= 0,
+    AND(NOT(ISBLANK(Account__c)), LEN(CASESAFEID(Account__c)) &lt;&gt; 18),
+    CONTAINS(Name, BR())
+  )
+)</errorConditionFormula>
+    <errorMessage>Regulated project failed the region, geo, currency or identity gate.</errorMessage>
+</ValidationRule>

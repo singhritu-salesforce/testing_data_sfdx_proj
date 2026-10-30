@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Shp_Trig_Geometry</fullName>
+    <active>true</active>
+    <description>Haversine (SIN/COS/ATAN2/SQRT/PI) must agree with DISTANCE for international shipments; box dimensions pass ATAN/ASIN/ACOS/TAN sanity bands; volume and density pass LOG/EXP checks; transit speed must be physically possible.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Origin__latitude__s)),
+  NOT(ISBLANK(Destination__latitude__s)),
+  OR(
+    AND(
+      Is_International__c,
+      ABS(3958.8 * 2 * ATAN2(SQRT((SIN((Destination__latitude__s - Origin__latitude__s) * PI() / 360) ^ 2 + COS(Origin__latitude__s * PI() / 180) * COS(Destination__latitude__s * PI() / 180) * SIN((Destination__longitude__s - Origin__longitude__s) * PI() / 360) ^ 2)), SQRT(1 - (SIN((Destination__latitude__s - Origin__latitude__s) * PI() / 360) ^ 2 + COS(Origin__latitude__s * PI() / 180) * COS(Destination__latitude__s * PI() / 180) * SIN((Destination__longitude__s - Origin__longitude__s) * PI() / 360) ^ 2))) - DISTANCE(Origin__c, Destination__c, 'mi')) &gt; 0.05 * MAX(1, DISTANCE(Origin__c, Destination__c, 'mi'))
+    ),
+    AND(
+      NULLVALUE(Length_Cm__c, 0) &gt; 0,
+      NULLVALUE(Width_Cm__c, 0) &gt; 0,
+      NOT(ISBLANK(Height_Cm__c)),
+      OR(
+        ATAN(Height_Cm__c / Length_Cm__c) * 180 / PI() &gt; 80,
+        ASIN(MIN(1, Width_Cm__c / MAX(Length_Cm__c, Width_Cm__c, Height_Cm__c))) &lt; ACOS(0.99),
+        ROUND(TAN(ATAN(Width_Cm__c / Length_Cm__c)) * Length_Cm__c, 1) &lt;&gt; ROUND(Width_Cm__c, 1),
+        AND(
+          NULLVALUE(Volume_M3__c, 0) &gt; 0,
+          OR(
+            ABS(Volume_M3__c - Length_Cm__c * Width_Cm__c * Height_Cm__c / 1000000) &gt; 0.02 * Volume_M3__c,
+            LOG(NULLVALUE(Weight_Kg__c, 0) / Volume_M3__c + 1) &gt; LOG(20000),
+            NULLVALUE(Weight_Kg__c, 0) / Volume_M3__c &lt; EXP(0)
+          )
+        )
+      )
+    ),
+    AND(
+      NULLVALUE(Transit_Seconds__c, 0) &gt; 0,
+      DISTANCE(Origin__c, Destination__c, 'mi') / (Transit_Seconds__c / 3600) &gt; IF(ISPICKVAL(Service_Level__c, 'Ground'), 80, 600)
+    )
+  )
+)</errorConditionFormula>
+    <errorMessage>Shipment geometry, volume/density or transit speed is implausible.</errorMessage>
+</ValidationRule>

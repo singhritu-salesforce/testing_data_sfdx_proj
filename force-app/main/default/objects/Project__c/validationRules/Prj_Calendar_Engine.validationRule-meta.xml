@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Calendar_Engine</fullName>
+    <active>true</active>
+    <description>Non-draft projects must start and kick off in the same ISO year within a priority-driven number of ISO weeks, end within a clamped month horizon, avoid unexempted weekend starts, and avoid year-end starts that fall in the wrong quarter-month window.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Start_Date__c)),
+  NOT(ISBLANK(End_Date__c)),
+  NOT(ISBLANK(Kickoff_At__c)),
+  IF(
+    ISPICKVAL(Status__c, 'Draft'),
+    FALSE,
+    OR(
+      End_Date__c &lt; Start_Date__c,
+      ISOYEAR(DATEVALUE(Kickoff_At__c)) &lt;&gt; ISOYEAR(Start_Date__c),
+      ABS(ISOWEEK(DATEVALUE(Kickoff_At__c)) - ISOWEEK(Start_Date__c)) &gt; CASE(TEXT(Priority__c), 'Critical', 1, 'High', 2, 4),
+      End_Date__c &gt; ADDMONTHS(Start_Date__c, MIN(36, MAX(12, CASE(TEXT(Priority__c), 'Critical', 12, 'High', 24, 36)))),
+      AND(
+        OR(WEEKDAY(Start_Date__c) = 1, WEEKDAY(Start_Date__c) = 7),
+        NOT(OR(ISPICKVAL(Priority__c, 'Critical'), DAYOFYEAR(Start_Date__c) = 1)),
+        IF(
+          CASE(MONTH(Start_Date__c), 12, 1, 1, 1, 0) = 1,
+          DAY(Start_Date__c) &gt; 20,
+          DATE(YEAR(Start_Date__c), MONTH(Start_Date__c), 1) &lt; ADDMONTHS(TODAY(), -120)
+        )
+      )
+    )
+  )
+)</errorConditionFormula>
+    <errorMessage>Project calendar (ISO week/year, horizon, weekend or year-end start) is not allowed.</errorMessage>
+</ValidationRule>

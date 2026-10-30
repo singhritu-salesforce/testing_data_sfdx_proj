@@ -2,7 +2,6 @@
 import os, re, sys, glob
 import xml.etree.ElementTree as ET
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__))))
-import model
 ALLOWED = "ABS ACOS ADDMONTHS AND ASCII ASIN ATAN ATAN2 BEGINS BLANKVALUE BR CASE CASESAFEID CEILING CHR CONTAINS COS CURRENCYRATE DATE DATETIMEVALUE DATEVALUE DAY DAYOFYEAR DISTANCE EXP FIND FLOOR FORMATDURATION FROMUNIXTIME GEOLOCATION GETSESSIONID HOUR IF INCLUDES INITCAP ISBLANK ISCHANGED ISCLONE ISNEW ISNULL ISNUMBER ISOWEEK ISOYEAR ISPICKVAL LEFT LEN LN LOG LOWER LPAD MAX MCEILING MFLOOR MID MILLISECOND MIN MINUTE MOD MONTH NOT NOW NULLVALUE OR PI PICKLISTCOUNT PRIORVALUE REGEX REVERSE RIGHT ROUND RPAD SECOND SIN SQRT SUBSTITUTE TAN TEXT TIMENOW TIMEVALUE TODAY TRIM TRUNC UNIXTIMESTAMP UPPER VALUE VLOOKUP WEEKDAY YEAR".split()
 ALLOWED_SET = set(ALLOWED)
 NS = {"m": "http://soap.sforce.com/2006/04/metadata"}
@@ -12,16 +11,15 @@ for p in xmlfiles:
     try: ET.parse(p)
     except Exception as e: errs.append(f"XML {p}: {e}")
 fields = {}
-for o, d in model.CUSTOM_OBJECTS.items():
-    s = {"Name", "Id", "CreatedDate", "CreatedById", "OwnerId", "LastModifiedDate"}
-    for f in d["fields"]:
-        s.add(f["name"])
-        if f["type"] == "Location": s |= {f["name"].replace("__c", "__latitude__s"), f["name"].replace("__c", "__longitude__s")}
-    fields[o] = s
-for o, fl in model.STANDARD_OBJECTS.items():
-    s = set(model.STD_REFS[o])
-    for f in fl: s.add(f["name"])
-    fields[o] = s
+for p in glob.glob("force-app/main/default/objects/*/fields/*.field-meta.xml"):
+    o = p.split("/objects/")[1].split("/")[0]; n = os.path.basename(p).split(".")[0]
+    fields.setdefault(o, {"Name", "Id", "CreatedDate", "OwnerId", "Description", "StageName", "CloseDate"})
+    fields[o].add(n)
+    if n.endswith("__c"):
+        import xml.etree.ElementTree as _E
+        if _E.parse(p).getroot().find("m:type", NS).text == "Location":
+            fields[o] |= {n.replace("__c", "__latitude__s"), n.replace("__c", "__longitude__s")}
+for o in os.listdir("force-app/main/default/objects"): fields.setdefault(o, {"Name", "Id"})
 nrules = 0; maxlen = 0; stats = []
 for p in sorted(glob.glob("force-app/**/validationRules/*.xml", recursive=True)):
     nrules += 1
@@ -56,7 +54,7 @@ for p in sorted(glob.glob("force-app/**/validationRules/*.xml", recursive=True))
     # $ObjectType refs
     for mo in re.finditer(r"\$ObjectType\.(\w+)\.Fields\.(\w+)", bare):
         o2, f2 = mo.groups()
-        if f2 not in fields.get(o2, {}) and not (o2 == "Account" and f2 in ("Name", "Id")) : errs.append(f"{rname}: bad $ObjectType ref {o2}.{f2}")
+        if f2 not in fields.get(o2, set()): errs.append(f"{rname}: bad $ObjectType ref {o2}.{f2}")
     stats.append((rname, len(used), mx))
 missing = [f for f, v in cov.items() if not v]
 print("xml files:", len(xmlfiles), "| rules:", nrules, "| max formula len:", maxlen)

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Time_Epoch_Forensics</fullName>
+    <active>true</active>
+    <description>Epoch seconds must agree with Kickoff At (year, hour, 5-minute grid, no stale midnight), durations must render with day units, standup times must sit in a lunch-free window, and active kickoffs cannot be in the future.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Kickoff_At__c)),
+  OR(
+    AND(
+      NOT(ISBLANK(Epoch_Seconds__c)),
+      OR(
+        ABS(UNIXTIMESTAMP(Kickoff_At__c) - Epoch_Seconds__c) &gt; 3600,
+        YEAR(DATEVALUE(FROMUNIXTIME(Epoch_Seconds__c))) &lt;&gt; YEAR(DATEVALUE(Kickoff_At__c)),
+        IF(
+          FROMUNIXTIME(Epoch_Seconds__c) &gt; NOW() + 3650,
+          TRUE,
+          DATETIMEVALUE(TEXT(DATEVALUE(Kickoff_At__c)) &amp; ' 00:00:00') &gt; Kickoff_At__c
+        )
+      )
+    ),
+    AND(
+      ISPICKVAL(Status__c, 'Active'),
+      OR(
+        Kickoff_At__c &gt; NOW() + 1,
+        AND(DATEVALUE(Kickoff_At__c) = TODAY(), TIMEVALUE(Kickoff_At__c) &gt; TIMENOW()),
+        MOD(MINUTE(TIMEVALUE(Kickoff_At__c)), 5) + SECOND(TIMEVALUE(Kickoff_At__c)) + MILLISECOND(TIMEVALUE(Kickoff_At__c)) &gt; 0
+      )
+    ),
+    AND(
+      NOT(ISBLANK(Duration_Secs__c)),
+      OR(
+        Duration_Secs__c &lt; 0,
+        AND(Duration_Secs__c &gt;= 86400, NOT(CONTAINS(FORMATDURATION(Duration_Secs__c, TRUE), 'd'))),
+        CEILING(Duration_Secs__c / 86400) &gt; NULLVALUE(End_Date__c - Start_Date__c, 9999) + 1
+      )
+    ),
+    AND(
+      NOT(ISBLANK(Standup_Time__c)),
+      OR(
+        Standup_Time__c &lt; TIMEVALUE('06:00:00.000'),
+        HOUR(Standup_Time__c) &gt;= 20,
+        AND(HOUR(Standup_Time__c) = 12, MINUTE(Standup_Time__c) &lt; 30)
+      )
+    )
+  )
+)</errorConditionFormula>
+    <errorMessage>Kickoff/Epoch/Duration/Standup time values are inconsistent.</errorMessage>
+</ValidationRule>

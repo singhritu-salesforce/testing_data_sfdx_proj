@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Emp_Manager_Review_Mega</fullName>
+    <active>true</active>
+    <description>Performance may not exceed the manager's (VLOOKUP by name), scores move in half-point steps in 0-5, review timestamps are checked with DATETIMEVALUE/TIMEVALUE and the bio length is bounded by skills.</description>
+    <errorConditionFormula>AND(
+  NOT(ISPICKVAL(Employment_Type__c, 'Contractor')),
+  OR(
+    AND(
+      NOT(ISBLANK(Manager_Name_Ref__c)),
+      NOT(ISBLANK(Performance_Score__c)),
+      Performance_Score__c &gt; NULLVALUE(VLOOKUP($ObjectType.Employee_Record__c.Fields.Performance_Score__c, $ObjectType.Employee_Record__c.Fields.Name, Manager_Name_Ref__c), Performance_Score__c)
+    ),
+    AND(
+      NOT(ISBLANK(Performance_Score__c)),
+      OR(
+        Performance_Score__c &lt; 0,
+        Performance_Score__c &gt; 5,
+        ROUND(Performance_Score__c * 2, 0) &lt;&gt; Performance_Score__c * 2
+      )
+    ),
+    AND(
+      NOT(ISBLANK(Last_Review_At__c)),
+      OR(
+        Last_Review_At__c &gt; NOW(),
+        DATETIMEVALUE(TEXT(DATEVALUE(Last_Review_At__c)) &amp; ' 23:59:59') &lt; Last_Review_At__c,
+        TIMEVALUE(Last_Review_At__c) &lt; TIMEVALUE('06:00:00.000')
+      )
+    ),
+    AND(NOT(ISBLANK(Bio__c)), LEN(Bio__c) &gt; 2000, PICKLISTCOUNT(Skills__c) = 0)
+  )
+)</errorConditionFormula>
+    <errorMessage>Performance score, review timing or bio violates the manager/score rules.</errorMessage>
+</ValidationRule>

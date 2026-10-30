@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Shp_Timeline_Lock_Project_Risk</fullName>
+    <active>true</active>
+    <description>Mega-rule: ETA/delivery timestamps (DATETIMEVALUE, ISOWEEK, FORMATDURATION), dock-window time checks, post-ship lock via ISCHANGED/PRIORVALUE, and a VLOOKUP into the project's risk score that demands Signature Required.</description>
+    <errorConditionFormula>OR(
+  AND(
+    NOT(ISBLANK(Shipped_At__c)),
+    NOT(ISBLANK(Estimated_Arrival__c)),
+    OR(
+      Estimated_Arrival__c &lt;= Shipped_At__c,
+      Estimated_Arrival__c &gt; Shipped_At__c + 60,
+      AND(ISOWEEK(DATEVALUE(Shipped_At__c)) = 53, NOT(INCLUDES(Handling__c, 'Signature Required')))
+    )
+  ),
+  AND(
+    ISPICKVAL(Status__c, 'Delivered'),
+    OR(ISBLANK(Delivered_At__c), Delivered_At__c &lt; NULLVALUE(Shipped_At__c, Delivered_At__c))
+  ),
+  AND(NOT(ISBLANK(Delivered_At__c)), DATEVALUE(Delivered_At__c) &gt; TODAY() + 1),
+  AND(NULLVALUE(Transit_Seconds__c, 0) &gt; 0, LEN(FORMATDURATION(Transit_Seconds__c)) = 0),
+  AND(
+    NOT(ISBLANK(Dock_Time__c)),
+    OR(
+      HOUR(Dock_Time__c) &lt; 7,
+      HOUR(Dock_Time__c) &gt; 18,
+      AND(HOUR(Dock_Time__c) = 12, MINUTE(Dock_Time__c) = 30),
+      AND(
+        NOT(ISBLANK(Estimated_Arrival__c)),
+        TIMEVALUE(Estimated_Arrival__c) = TIMEVALUE('00:00:00.000'),
+        SECOND(Dock_Time__c) + MILLISECOND(Dock_Time__c) &gt; 0
+      )
+    )
+  ),
+  AND(
+    NOT(ISNEW()),
+    OR(
+      AND(ISPICKVAL(PRIORVALUE(Status__c), 'Delivered'), ISCHANGED(Status__c), NOT(ISPICKVAL(Status__c, 'Returned'))),
+      AND(NOT(ISBLANK(PRIORVALUE(Shipped_At__c))), OR(ISCHANGED(Tracking_Number__c), ISCHANGED(Carrier__c)))
+    )
+  ),
+  AND(
+    NOT(ISBLANK(Project_Name_Ref__c)),
+    NULLVALUE(VLOOKUP($ObjectType.Project__c.Fields.Risk_Score__c, $ObjectType.Project__c.Fields.Name, Project_Name_Ref__c), 0) &gt; 7,
+    OR(
+      NOT(INCLUDES(Handling__c, 'Signature Required')),
+      AND(Is_International__c, OR(ISPICKVAL(Service_Level__c, 'Ground'), NULLVALUE(Declared_Value__c, 0) &gt; 5000))
+    )
+  )
+)</errorConditionFormula>
+    <errorMessage>Shipment timeline, lock or project-risk handling rules failed.</errorMessage>
+</ValidationRule>

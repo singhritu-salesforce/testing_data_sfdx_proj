@@ -2,8 +2,8 @@
 import os, sys, re, shutil
 from xml.sax.saxutils import escape
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import model, rules_project, rules_other
-from rules_project import RULES, MACROS
+import model
+from rules import RULES, MACROS
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OBJ = os.path.join(ROOT, "force-app/main/default/objects")
@@ -59,43 +59,59 @@ def expand(formula):
     assert "@" not in re.sub(r"'[^']*'", "", f), f
     return f
 
+def used_ids(fx):
+    bare = re.sub(r"'(?:[^'\\]|\\.)*'", "''", fx)
+    ids = set(re.findall(r"(?<![\w$.])([A-Za-z][A-Za-z0-9_]*(?:__[cs])?)\b(?!\s*\()", bare))
+    return {i.replace("__latitude__s", "__c").replace("__longitude__s", "__c") for i in ids}, bare
+
 def main():
-    shutil.rmtree(os.path.join(ROOT, "force-app/main/default/objects"), ignore_errors=True)
+    shutil.rmtree(OBJ, ignore_errors=True)
     shutil.rmtree(PS, ignore_errors=True)
-    allfields = {}  # obj -> set of field names
-    for o, d in model.CUSTOM_OBJECTS.items():
-        w(f"{OBJ}/{o}/{o}.object-meta.xml", object_xml(d["label"], d["plural"], d["nameLabel"]))
-        for f in d["fields"]:
-            w(f"{OBJ}/{o}/fields/{f['name']}.field-meta.xml", field_xml(f, o))
-        allfields[o] = d["fields"]
-    for o, fl in model.STANDARD_OBJECTS.items():
-        for f in fl:
-            w(f"{OBJ}/{o}/fields/{f['name']}.field-meta.xml", field_xml(f, o))
-        allfields[o] = fl
-    # rules
     for r in RULES:
-        fx = expand(r["formula"])
+        r["expanded"] = expand(r["formula"])
+    needed = {}  # obj -> field set
+    for r in RULES:
+        ids, bare = used_ids(r["expanded"])
+        needed.setdefault(r["obj"], set()).update(ids)
+        for o2, f2 in re.findall(r"\$ObjectType\.(\w+)\.Fields\.(\w+)", bare):
+            needed.setdefault(o2, set()).add(f2)
+    allfields = {}
+    cust = {o: d["fields"] for o, d in model.CUSTOM_OBJECTS.items()}
+    cust.update(model.STANDARD_OBJECTS)
+    for o, fl in cust.items():
+        keep = [f for f in fl if f["name"] in needed.get(o, set())]
+        # lookups kept must have a target object that exists (checked below)
+        if o in model.CUSTOM_OBJECTS and keep:
+            d = model.CUSTOM_OBJECTS[o]
+            w(f"{OBJ}/{o}/{o}.object-meta.xml", object_xml(d["label"], d["plural"], d["nameLabel"]))
+        if o in model.STANDARD_OBJECTS and not keep: continue
+        if o in model.CUSTOM_OBJECTS and not keep and o not in needed: continue
+        for f in keep:
+            w(f"{OBJ}/{o}/fields/{f['name']}.field-meta.xml", field_xml(f, o))
+        if keep or o in needed: allfields[o] = keep
+    for r in RULES:
+        fx = r["expanded"]
         assert len(fx) < 3900, (r["name"], len(fx))
-        assert len(r["name"]) <= 40, r["name"]
         x = (HDR + f'<ValidationRule {NS}>\n    <fullName>{r["name"]}</fullName>\n    <active>true</active>\n'
              f'    <description>{escape(r["desc"])}</description>\n    <errorConditionFormula>{escape(fx)}</errorConditionFormula>\n'
              f'    <errorMessage>{escape(r["msg"])}</errorMessage>\n</ValidationRule>\n')
         w(f'{OBJ}/{r["obj"]}/validationRules/{r["name"]}.validationRule-meta.xml', x)
-        r["expanded"] = fx
-    # permission set
+    for o in model.CUSTOM_OBJECTS:  # custom object with only a name field still needs a file if used as VLOOKUP target
+        if o in needed and not os.path.exists(f"{OBJ}/{o}/{o}.object-meta.xml"):
+            d = model.CUSTOM_OBJECTS[o]; w(f"{OBJ}/{o}/{o}.object-meta.xml", object_xml(d["label"], d["plural"], d["nameLabel"]))
     ps = [HDR, f'<PermissionSet {NS}>\n    <description>Grants full access to all objects and fields in this project</description>\n    <hasActivationRequired>false</hasActivationRequired>\n    <label>Full Access</label>\n']
     for o, fl in allfields.items():
-        for f in fl:
-            if o in model.CUSTOM_OBJECTS and f["type"] in ("Checkbox",) or f["type"] == "Required": pass
-        # custom object name field is always accessible; list non-required fields
         for f in sorted(fl, key=lambda z: z["name"]):
-            ps.append(f'    <fieldPermissions>\n        <editable>true</editable>\n        <field>{o}.{f["name"]}</field>\n        <readable>true</readable>\n    </fieldPermissions>\n')
+            if f["type"] in ("Checkbox",) or True:
+                ps.append(f'    <fieldPermissions>\n        <editable>true</editable>\n        <field>{o}.{f["name"]}</field>\n        <readable>true</readable>\n    </fieldPermissions>\n')
     for o in model.CUSTOM_OBJECTS:
-        ps.append(f'    <objectPermissions>\n        <allowCreate>true</allowCreate>\n        <allowDelete>true</allowDelete>\n        <allowEdit>true</allowEdit>\n        <allowRead>true</allowRead>\n        <modifyAllRecords>true</modifyAllRecords>\n        <object>{o}</object>\n        <viewAllRecords>true</viewAllRecords>\n    </objectPermissions>\n')
+        if os.path.exists(f"{OBJ}/{o}/{o}.object-meta.xml"):
+            ps.append(f'    <objectPermissions>\n        <allowCreate>true</allowCreate>\n        <allowDelete>true</allowDelete>\n        <allowEdit>true</allowEdit>\n        <allowRead>true</allowRead>\n        <modifyAllRecords>true</modifyAllRecords>\n        <object>{o}</object>\n        <viewAllRecords>true</viewAllRecords>\n    </objectPermissions>\n')
     ps.append('</PermissionSet>\n')
     w(f"{PS}/Full_Access.permissionset-meta.xml", "".join(ps))
     return allfields
 
 if __name__ == "__main__":
     af = main()
-    print("objects", len(model.CUSTOM_OBJECTS), "fields", sum(len(v) for v in af.values()), "rules", len(RULES))
+    objs = [o for o in os.listdir(OBJ)]
+    print("objects", len(objs), objs, "fields", sum(len(v) for v in af.values()), "rules", len(RULES))

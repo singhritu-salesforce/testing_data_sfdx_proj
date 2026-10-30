@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Emp_Shift_Skill_Location_Rules</fullName>
+    <active>true</active>
+    <description>Shift windows (HOUR/MINUTE math vs weekly hours), skill requirements per grade (INCLUDES/PICKLISTCOUNT), on-site distance limit per grade (DISTANCE in km), and salary/review change freezes after termination.</description>
+    <errorConditionFormula>OR(
+  AND(
+    NOT(ISBLANK(Shift_Start__c)),
+    NOT(ISBLANK(Shift_End__c)),
+    OR(
+      Shift_End__c &lt;= Shift_Start__c,
+      OR(HOUR(Shift_Start__c) &gt;= 22, HOUR(Shift_Start__c) &lt; 6),
+      AND(
+        NOT(ISBLANK(Weekly_Hours__c)),
+        ABS((HOUR(Shift_End__c) * 60 + MINUTE(Shift_End__c) - HOUR(Shift_Start__c) * 60 - MINUTE(Shift_Start__c)) / 60 - Weekly_Hours__c / 5) &gt; 1
+      )
+    )
+  ),
+  AND(
+    CASE(TEXT(Grade__c), 'Senior', 1, 'Staff', 1, 'Principal', 1, 'Director', 1, 0) = 1,
+    OR(
+      PICKLISTCOUNT(Skills__c) &lt; 2,
+      NOT(OR(INCLUDES(Skills__c, 'Integration'), INCLUDES(Skills__c, 'Security'))),
+      AND(ISPICKVAL(Grade__c, 'Director'), NOT(INCLUDES(Skills__c, 'Data')))
+    )
+  ),
+  AND(ISPICKVAL(Employment_Type__c, 'Intern'), INCLUDES(Skills__c, 'Security')),
+  AND(
+    NOT(Is_Remote__c),
+    NOT(ISBLANK(Office_Location__latitude__s)),
+    NOT(ISBLANK(Home_Location__latitude__s)),
+    DISTANCE(Office_Location__c, Home_Location__c, 'km') &gt; CASE(TEXT(Grade__c), 'Director', 320, 'Principal', 240, 190)
+  ),
+  AND(
+    NOT(ISNEW()),
+    OR(
+      AND(NOT(ISBLANK(PRIORVALUE(Termination_Date__c))), ISCHANGED(Salary__c)),
+      AND(ISCHANGED(Last_Review_At__c), NOT(ISBLANK(PRIORVALUE(Last_Review_At__c))), Last_Review_At__c &lt; PRIORVALUE(Last_Review_At__c))
+    )
+  )
+)</errorConditionFormula>
+    <errorMessage>Shift, skills, location or post-termination change rules were violated.</errorMessage>
+</ValidationRule>

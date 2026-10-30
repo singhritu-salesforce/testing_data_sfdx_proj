@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prj_Tags_Status_Matrix</fullName>
+    <active>true</active>
+    <description>Multi-picklist Tags are checked against Priority, Status (ranked by a CASE ladder), approval, notes and contact data, with count ceilings and forbidden combinations.</description>
+    <errorConditionFormula>OR(
+  AND(
+    INCLUDES(Tags__c, 'Regulated'),
+    OR(
+      NOT(Is_Approved__c),
+      PICKLISTCOUNT(Tags__c) &gt; 3,
+      AND(INCLUDES(Tags__c, 'Pilot'), INCLUDES(Tags__c, 'Strategic')),
+      ISBLANK(Contact_Email__c)
+    )
+  ),
+  IF(
+    ISBLANK(Tags__c),
+    OR(ISPICKVAL(Priority__c, 'High'), ISPICKVAL(Priority__c, 'Critical')),
+    OR(
+      PICKLISTCOUNT(Tags__c) &gt; CASE(TEXT(Priority__c), 'Low', 1, 'Medium', 2, 'High', 3, 5),
+      AND(INCLUDES(Tags__c, 'External'), INCLUDES(Tags__c, 'Internal'), NOT(INCLUDES(Tags__c, 'Regulated')))
+    )
+  ),
+  AND(ISPICKVAL(Priority__c, 'Critical'), CASE(TEXT(Status__c), 'Draft', 0, 'Planning', 1, 'Active', 2, 'On Hold', 2, 'Completed', 3, 'Cancelled', 3, -1) &lt; 1),
+  AND(ISPICKVAL(Status__c, 'Completed'), NULLVALUE(Completion_Pct__c, 0) &lt; 1),
+  AND(CASE(TEXT(Status__c), 'Draft', 0, 'Planning', 1, 'Active', 2, 'On Hold', 2, 'Completed', 3, 'Cancelled', 3, -1) = 2, NOT(Is_Approved__c), CASE(TEXT(Priority__c), 'High', 1, 'Critical', 1, 0) = 1),
+  AND(ISPICKVAL(Status__c, 'On Hold'), ISBLANK(Notes__c))
+)</errorConditionFormula>
+    <errorMessage>Tags, priority, status, approval and notes are not consistent.</errorMessage>
+</ValidationRule>

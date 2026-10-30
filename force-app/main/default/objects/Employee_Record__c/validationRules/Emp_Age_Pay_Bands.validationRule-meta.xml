@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Emp_Age_Pay_Bands</fullName>
+    <active>true</active>
+    <description>Age at hire (ADDMONTHS), leap-day birthdays, termination ordering, grade-based salary bands (CASE) scaled for part-timers, and a log-scaled bonus ceiling.</description>
+    <errorConditionFormula>OR(
+  AND(
+    NOT(ISBLANK(Hire_Date__c)),
+    NOT(ISBLANK(Birthdate__c)),
+    OR(
+      ADDMONTHS(Birthdate__c, 192) &gt; Hire_Date__c,
+      Hire_Date__c &gt; TODAY() + 90,
+      AND(ISPICKVAL(Employment_Type__c, 'Intern'), ADDMONTHS(Birthdate__c, 312) &lt; Hire_Date__c),
+      AND(MONTH(Birthdate__c) = 2, DAY(Birthdate__c) = 29, MOD(YEAR(Birthdate__c), 4) &lt;&gt; 0),
+      YEAR(TODAY()) - YEAR(Birthdate__c) &gt; 75
+    )
+  ),
+  AND(NOT(ISBLANK(Termination_Date__c)), NOT(ISBLANK(Hire_Date__c)), Termination_Date__c &lt; Hire_Date__c),
+  AND(
+    NOT(ISBLANK(Salary__c)),
+    Salary__c &gt; 0,
+    OR(
+      Salary__c &lt; CASE(TEXT(Grade__c), 'Junior', 40000, 'Mid', 65000, 'Senior', 90000, 'Staff', 120000, 'Principal', 150000, 'Director', 180000, 0)
+        * IF(ISPICKVAL(Employment_Type__c, 'Part Time'), MIN(1, NULLVALUE(Weekly_Hours__c, 40) / 40), 1),
+      Salary__c &gt; CASE(TEXT(Grade__c), 'Junior', 90000, 'Mid', 130000, 'Senior', 190000, 'Staff', 260000, 'Principal', 350000, 'Director', 600000, 10000000),
+      NULLVALUE(Bonus__c, 0) &gt; Salary__c * ROUND(LN(Salary__c) / 40, 2),
+      FLOOR(LOG(Salary__c)) &lt; 4
+    )
+  )
+)</errorConditionFormula>
+    <errorMessage>Hire/birth/termination dates or salary/bonus are outside the allowed bands.</errorMessage>
+</ValidationRule>
